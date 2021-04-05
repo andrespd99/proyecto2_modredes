@@ -1,74 +1,139 @@
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.regex.Pattern;
 
 public class Proyecto {
 
-    static ArrayList<Activity> activities = new ArrayList<>();
-
-    static Scanner scanner = new Scanner(System.in);
+    private static ArrayList<Activity> activities = new ArrayList<>();
+    private static Scanner scanner = new Scanner(System.in);
 
 
     public static void main(String[] args) {
-        boolean isFinished = false;
+        Graph graph;
 
-        System.out.println("Bienvenido al programa. \n Comience introduciendo cada una de las actividades\n\n");
+        System.out.println("Bienvenido al programa.");
+        System.out.println("Desea ejecutar el PERT de ejemplo o generar su propio grafo?");
+        System.out.println("(1) Ejecutar ejemplo.");
+        System.out.println("(2) Generar grafo nuevo.");
+        System.out.print("Respuesta: ");
 
-//        Inputs de las actividades.
-        while (!isFinished) {
-            createActivity();
-
-            System.out.println("Deseas agregar otra actividad? (s/n): ");
-            String c = scanner.nextLine();
-            if(c.equalsIgnoreCase("n"))
-                isFinished = true;
+        if(scanner.nextLine().equals("1")){
+           graph = new Graph(createExample());
+        } else {
+            graph = new Graph(createActivities());
         }
 
-        //Calcular y mostrar los valores es, ls, ef y lf de cada actividad.
-        for (Activity activity: activities) {
-            System.out.println(activity.getId() + " " + activity.getDuration() + " " + activity.predecessorsToString());
-        }
-
-        System.exit(0);
+        graph.run();
     }
 
-    public static void createActivity(){
+    private static ArrayList<Activity> createActivities() {
+        boolean done = false;
 
-        System.out.println("Nombre de la actividad: ");
-        String id = scanner.nextLine();
+        System.out.println("\nIntroduzca la primera actividad.");
+        do {
+            System.out.print("\nNombre de la actividad: ");
+            String id = scanner.nextLine().toUpperCase();
 
-        System.out.println("Duracion de la actividad " + id + ": ");
-        int duracion = Integer.parseInt(scanner.nextLine());
+            //Crear la actividad
+            createActivity(id);
 
-        Activity activity = new Activity(id, duracion);
+            //Luego...
+            System.out.print("\nDesea agregar otra actividad? (s/N): ");
+            if(!scanner.nextLine().equalsIgnoreCase("s"))
+                done = true;
+        } while (!done);
+        //Finalmente retornamos la lista de actividades.
+        return activities;
+    }
 
+    private static ArrayList<Activity> createExample(){
+        Activity aA = new Activity("A", 3);
+        Activity aB = new Activity("B", 2);
+        Activity aC = new Activity("C", 1);
+        Activity aD = new Activity("D", 3);
+        Activity aE = new Activity("E", 2);
+        Activity aF = new Activity("F", 2);
+        Activity aG = new Activity("G", 2);
+        //B
+        aB.addPredecessor(aA);
+        //C
+        aC.addPredecessor(aB);
+        aC.addPredecessor(aE);
+        //D
+        aD.addPredecessor(aE);
+        //E
+        aE.addPredecessor(aA);
+        //F
+        aF.addPredecessor(aC);
+        aF.addPredecessor(aD);
+        //G
+        aG.addPredecessor(aF);
+
+        ArrayList<Activity> activities = new ArrayList<>();
+        activities.add(aA);
+        activities.add(aB);
+        activities.add(aC);
+        activities.add(aD);
+        activities.add(aE);
+        activities.add(aF);
+        activities.add(aG);
+        return activities;
+    }
+
+    private static void createActivity(String id){
+        ArrayList<String> precedentesCache = new ArrayList<>();
+
+        int duration = getDuracion(id);
+
+        Activity activity = new Activity(id, duration);
         activities.add(activity);
 
-        System.out.println("Cuantos predecesores tiene la actividad " + id + "?: ");
-        int numPredecesores = Integer.parseInt(scanner.nextLine());
-
-        for(int i = 0; i < numPredecesores; i++ ){
-            String isOk = "";
-            String predecesor;
-            do {
-                System.out.println("Introduzca el nombre de la actividad predecesora " + i + ": ");
-                predecesor = scanner.nextLine();
-                if (!activityExists(predecesor)) {
-                    // No se ha creado el nodo predecesor => crear;
-                    System.out.println("Deseas crear la actividad " + predecesor + "? (s/n): ");
-                    isOk = scanner.nextLine();
-                    if ( isOk.equalsIgnoreCase("s"))
-                        createActivity(predecesor);
-                } else {
-                    isOk = "s";
-                    activity.addPredecessor(getActivity(predecesor));
+        System.out.print("Esta actividad tiene precedentes? (s/N): ");
+        if(scanner.nextLine().equalsIgnoreCase("s")){
+            int nPrecedentes = getNPrecedents();
+            for(int i=1; i<=nPrecedentes; i++){
+                System.out.print("Nombre de la " + i + "° actividad precedente a la actividad '" + id + "': ");
+                String precedente = scanner.nextLine().toUpperCase();
+                if(activityExists(precedente))
+                    activity.addPredecessor(getActivity(precedente));
+                else{
+                    precedentesCache.add(precedente);
                 }
-            } while (!isOk.equalsIgnoreCase("s"));
-            // Registra el predecesor para la actividad.
+            }
+            //Luego de definir las actividades precedentes, crearlas.
+            for(String precedente: precedentesCache){
+                System.out.println("\n--- Creacion de la actividad " + precedente +" ---");
+                createActivity(precedente);
+                activity.addPredecessor(getActivity(precedente));
+            }
+//            activities.add(activity);
         }
+    }
 
-        //Desea agregar otra actividad?
-        //SI -> crearActividad()
-        //NO -> termina.
+    private static int getDuracion(String id){
+        boolean valid;
+        String input;
+        do {
+            System.out.print("Duracion de la actividad " + id +": ");
+            input = scanner.nextLine();
+            valid = Pattern.matches("^[0-9]*$", input);
+            if(!valid)
+                System.out.println("Ingrese unicamente digitos!");
+        } while (!valid);
+        return Integer.parseInt(input);
+    }
+
+    private static int getNPrecedents(){
+        boolean valid;
+        String input;
+        do {
+            System.out.print("Cuantos precedentes tiene? (Introducir un digito): ");
+            input = scanner.nextLine();
+            valid = Pattern.matches("^[0-9]*$", input);
+            if(!valid)
+                System.out.println("Ingrese unicamente digitos!");
+        } while (!valid);
+        return Integer.parseInt(input);
     }
 
     private static boolean activityExists(String predecesor) {
@@ -82,69 +147,11 @@ public class Proyecto {
         return exists;
     }
 
-    public static void createActivity(String nombre){
-
-        String id = nombre;
-
-        System.out.println("Duracion de la actividad " + nombre + ": ");
-        int duracion = Integer.parseInt(scanner.nextLine());
-
-        Activity activity = new Activity(id, duracion);
-
-        activities.add(activity);
-
-        System.out.println("Cuantos predecesores tiene la actividad " + nombre + "?: ");
-        int numPredecesores = Integer.parseInt(scanner.nextLine());
-
-        for(int i = 0; i < numPredecesores; i++ ){
-            String isOk = "";
-            String predecesor;
-            do {
-                System.out.println("Introduzca el nombre de la actividad predecesora " + i + ": ");
-                predecesor = scanner.nextLine();
-                if (!activityExists(predecesor)) {
-                    // No se ha creado el nodo predecesor => crear;
-                    System.out.println("Deseas crear la actividad " + predecesor + "? (s/n): ");
-                    isOk = scanner.nextLine();
-                    if ( isOk.equalsIgnoreCase("s"))
-                        createActivity(predecesor);
-                }
-                else {
-                    isOk = "s";
-                    activity.addPredecessor(getActivity(predecesor));
-                }
-            } while (!isOk.equalsIgnoreCase("s"));
-            // Registra el predecesor para la actividad.
-
-        }
-
-        //Desea agregar otra actividad?
-        //SI -> crearActividad()
-        //NO -> termina.
-    }
-
-    public static Activity getActivity(String id) {
+    private static Activity getActivity(String id) {
         for(Activity activity: activities) {
             if(activity.getId().equals(id))
                 return activity;
         }
         return null;
     }
-
-    public static void calculateDurations() {
-        ArrayList<Activity> roots = new ArrayList<Activity>();
-
-        for (Activity activity: activities) {
-            if( activity.isRoot()) {
-                roots.add(activity);
-            }
-        }
-
-
-
-
-
-
-    }
-
 }
