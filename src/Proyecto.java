@@ -1,3 +1,4 @@
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.regex.Pattern;
@@ -12,8 +13,8 @@ public class Proyecto {
         Graph graph;
 
         System.out.println("Bienvenido al programa.");
-        System.out.println("Desea ejecutar el PERT de ejemplo o generar su propio grafo?");
-        System.out.println("(1) Ejecutar ejemplo.");
+        System.out.println("Desea ejecutar el diagrama PERT de ejemplo o generar su propio grafo?");
+        System.out.println("(1) Ejecutar diagrama de ejemplo.");
         System.out.println("(2) Generar grafo nuevo.");
         System.out.print("Respuesta: ");
 
@@ -24,6 +25,7 @@ public class Proyecto {
         }
 
         graph.run();
+
     }
 
     private static ArrayList<Activity> createActivities() {
@@ -42,6 +44,7 @@ public class Proyecto {
             if(!scanner.nextLine().equalsIgnoreCase("s"))
                 done = true;
         } while (!done);
+
         //Finalmente retornamos la lista de actividades.
         return activities;
     }
@@ -54,6 +57,7 @@ public class Proyecto {
         Activity aE = new Activity("E", 2);
         Activity aF = new Activity("F", 2);
         Activity aG = new Activity("G", 2);
+
         //B
         aB.addPredecessor(aA);
         //C
